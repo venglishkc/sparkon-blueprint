@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>HubSpot Implementation Blueprint — Northbridge Commercial Bank</title>
+<style>
+  :root{
+    --ink:#0f172a; --ink2:#334155; --muted:#64748b; --line:#e2e8f0;
+    --bg:#f6f8fb; --card:#ffffff; --navy:#0e1c34;
+    --gold:#c39b3f; --gold-soft:#f3ead2; --teal:#0d9488; --sky:#0ea5e9;
+    --red:#c0392b; --amber:#b7791f; --green:#15803d;
+    --radius:14px; --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--teal)}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* Header */
+  header.hero{background:linear-gradient(160deg,#0e1c34 0%,#16305a 60%,#1c3f74 100%);color:#eaf1fb;padding:44px 0 40px}
+  .eyebrow{letter-spacing:.16em;text-transform:uppercase;font-size:12px;color:#c39b3f;font-weight:700}
+  header.hero h1{font-size:34px;line-height:1.15;margin:10px 0 8px;font-weight:750;color:#fff}
+  header.hero p.sub{font-size:17px;color:#c3d2e8;margin:0 0 20px;max-width:760px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .chip{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#dbe6f5;
+    padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  .chip.gold{background:rgba(195,155,63,.16);border-color:rgba(195,155,63,.5);color:#f0dfae}
+  .byline{margin-top:22px;font-size:13.5px;color:#9fb4d4}
+  .byline b{color:#eaf1fb}
+
+  /* Nav */
+  nav.tabs{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line)}
+  .tabs-inner{display:flex;gap:2px;overflow-x:auto;max-width:1120px;margin:0 auto;padding:0 16px}
+  .tab{border:0;background:none;padding:15px 15px;font-size:14px;font-weight:600;color:var(--muted);
+    cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;font-family:inherit}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--navy);border-bottom-color:var(--gold)}
+
+  /* Sections */
+  section.panel{display:none;padding:38px 0 10px;animation:fade .25s ease}
+  section.panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  h2.sec{font-size:24px;margin:0 0 4px;font-weight:730;letter-spacing:-.01em}
+  p.lead{color:var(--ink2);font-size:16px;margin:6px 0 24px;max-width:820px}
+  h3{font-size:16.5px;margin:26px 0 10px;font-weight:700}
+  .muted{color:var(--muted)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);margin-bottom:18px}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:820px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:750;color:var(--navy);letter-spacing:-.01em}
+  .stat .l{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;
+    letter-spacing:.03em;text-transform:uppercase}
+  .pill.gold{background:var(--gold-soft);color:#7a5c14}
+  .pill.teal{background:#d5f2ee;color:#0b5f57}
+  .pill.sky{background:#dceffb;color:#0a5a86}
+  .pill.grey{background:#eef1f5;color:#475569}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f2f5f9;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:#475569}
+  td code{background:#f0f3f7;padding:1px 6px;border-radius:5px;font-size:12.5px;color:#0b3d6b}
+  tr:last-child td{border-bottom:0}
+
+  ul.tight{margin:8px 0 0;padding-left:18px}
+  ul.tight li{margin:5px 0}
+  .note{border-left:3px solid var(--gold);background:var(--gold-soft);padding:12px 16px;border-radius:0 10px 10px 0;
+    font-size:14px;color:#5c4a1c}
+
+  /* RevOps loop */
+  .loop{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:820px){.loop{grid-template-columns:1fr}}
+  .stage{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff;position:relative}
+  .stage .num{font-size:12px;font-weight:800;color:var(--gold)}
+  .stage h4{margin:6px 0 6px;font-size:15px}
+  .stage p{font-size:13px;color:var(--ink2);margin:0}
+
+  /* Pipeline funnel */
+  .funnel{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  .fstage{display:grid;grid-template-columns:170px 1fr 130px;align-items:center;gap:12px}
+  .fbar{height:34px;border-radius:8px;background:linear-gradient(90deg,#16305a,#2a5697);display:flex;
+    align-items:center;color:#fff;font-size:12.5px;font-weight:600;padding-left:12px;min-width:60px}
+  .fstage .name{font-size:13.5px;font-weight:600}
+  .fstage .val{font-size:12.5px;color:var(--muted);text-align:right}
+
+  /* Integration diagram */
+  .diagram{display:grid;grid-template-columns:1fr 130px 1fr;gap:14px;align-items:center}
+  @media(max-width:820px){.diagram{grid-template-columns:1fr}}
+  .hub{background:linear-gradient(160deg,#0e1c34,#1c3f74);color:#fff;border-radius:14px;padding:20px;text-align:center;box-shadow:var(--shadow)}
+  .hub b{font-size:16px}
+  .sys{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:#fff;margin-bottom:9px;font-size:13px}
+  .sys .t{font-weight:700}
+  .sys .d{font-size:11.5px;color:var(--muted)}
+  .flowlbl{font-size:11px;color:var(--muted);text-align:center}
+
+  /* AI agent demo */
+  .agent{background:#0e1c34;border-radius:16px;padding:0;overflow:hidden;box-shadow:var(--shadow)}
+  .agent .bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#0b1728;border-bottom:1px solid #1e335a}
+  .dot{width:11px;height:11px;border-radius:50%}
+  .agent .title{color:#cdd9ec;font-size:13px;font-weight:600;margin-left:6px}
+  .agent .body{padding:18px 20px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px;color:#c9d6ea;
+    min-height:120px}
+  .agent .body .log{color:#7fa8dd}
+  .agent .body .ok{color:#4ec98f}
+  .agent .body .fact{color:#e6c877}
+  .runbtn{background:var(--gold);color:#231a04;border:0;border-radius:9px;padding:11px 20px;font-weight:700;
+    font-size:14px;cursor:pointer;font-family:inherit}
+  .runbtn:hover{filter:brightness(1.06)}
+  .runbtn:disabled{opacity:.6;cursor:default}
+  .brief{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin-top:16px;
+    box-shadow:var(--shadow);display:none}
+  .brief.show{display:block}
+  .brief h4{font-size:17px;margin:2px 0 2px;color:var(--navy)}
+  .brief .gen{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  .brief h5{font-size:14px;margin:16px 0 4px;color:var(--navy);border-top:1px solid var(--line);padding-top:12px}
+  .brief p,.brief li{font-size:13.8px;color:var(--ink2)}
+  .brief .risk{color:var(--red);font-weight:600}
+
+  /* timeline */
+  .sprint{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
+  .sprint:last-child{border-bottom:0}
+  .sprint .w{flex:0 0 118px;font-weight:700;font-size:13px;color:var(--navy)}
+  .sprint .body{flex:1}
+  .sprint .body b{font-size:14px}
+  footer{padding:30px 0 60px;color:var(--muted);font-size:13px;text-align:center}
+  .kbd{font-family:ui-monospace,monospace;background:#eef1f5;border:1px solid #d7dee6;border-radius:5px;padding:1px 6px;font-size:12px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">HubSpot Implementation Blueprint · Sample Engagement</div>
+    <h1>Northbridge Commercial Bank — RevOps &amp; CRM Architecture</h1>
+    <p class="sub">A front-office revenue system on HubSpot that sits <em>alongside</em> the core banking
+      platform — unifying commercial relationships, loan pipeline, treasury cross-sell, and an AI
+      intelligence layer — designed on Sparkon's RevOps Loop™.</p>
+    <div class="meta-row">
+      <span class="chip gold">HubSpot Elite build pattern</span>
+      <span class="chip">Finance / Commercial Banking</span>
+      <span class="chip">Enterprise CRM + Custom Objects</span>
+      <span class="chip">AI Agent layer</span>
+      <span class="chip">ISO 27001-aligned governance</span>
+    </div>
+    <div class="byline">Prepared by <b>Vaughn English</b> as a work sample for <b>Sparkon</b> ·
+      A demonstration of how I scope, architect, and deliver a HubSpot implementation from requirements.
+      <br><span style="color:#7d93b6">Client is illustrative; the architecture, schema, and AI agent are real and buildable.</span></div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tabs-inner" id="tabbar">
+    <button class="tab active" data-p="brief">Engagement Brief</button>
+    <button class="tab" data-p="loop">RevOps Loop</button>
+    <button class="tab" data-p="arch">CRM Architecture</button>
+    <button class="tab" data-p="flows">Workflows</button>
+    <button class="tab" data-p="integ">Integrations &amp; Migration</button>
+    <button class="tab" data-p="ai">AI Agent (live demo)</button>
+    <button class="tab" data-p="plan">Delivery Plan</button>
+    <button class="tab" data-p="notes">Engineering Notes</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ ENGAGEMENT BRIEF ============ -->
+<section class="panel active" id="brief">
+  <h2 class="sec">The engagement</h2>
+  <p class="lead">Northbridge is a $6.2B-asset regional commercial bank. Its core banking, loan
+    origination, and deposits run on rock-solid systems of record — but the <em>front office</em>
+    (relationship managers, lending, treasury) runs on spreadsheets and an aging CRM. Revenue teams
+    can't see a whole relationship, the loan pipeline lives in a workbook, and cross-sell between
+    lending and treasury happens by memory.</p>
+
+  <div class="grid g4" style="margin-bottom:8px">
+    <div class="stat"><div class="n">$6.2B</div><div class="l">Assets</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">Revenue divisions</div></div>
+    <div class="stat"><div class="n">40+</div><div class="l">Relationship managers</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">Unified relationship view</div></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3 style="margin-top:2px">What's broken today</h3>
+      <ul class="tight">
+        <li><b>No single view of a relationship.</b> Lending, treasury, and deposits each hold a fragment.</li>
+        <li><b>Pipeline in spreadsheets.</b> No forecast leadership trusts; deals go stale unseen.</li>
+        <li><b>Cross-sell leakage.</b> $15M loans funding with one treasury product attached.</li>
+        <li><b>Referrals evaporate</b> between divisions with no hand-off trail.</li>
+        <li><b>Compliance can't audit</b> who touched what, when.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:2px">What we're building</h3>
+      <ul class="tight">
+        <li><b>HubSpot as the engagement layer</b> — not a core replacement. It sits beside Fiserv/nCino and adds the relationship intelligence they lack.</li>
+        <li><b>A banking-native data model</b> (custom objects for Relationships, Facilities, Treasury Products, Referrals).</li>
+        <li><b>Governed pipelines</b> for Commercial Lending, Treasury, and cross-division Referrals.</li>
+        <li><b>An AI intelligence layer</b> — a weekly RevOps brief + next-best-action for every RM.</li>
+        <li><b>Audit-ready governance</b> aligned to ISO 27001 / SOC 2 expectations.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note"><b>Design principle.</b> In a bank, HubSpot is the customer-engagement and
+    communication layer that sits alongside — not against — the core. Systems of record stay
+    authoritative; HubSpot becomes the place revenue teams actually work. Every architecture decision
+    below protects that boundary.</div>
+</section>
+
+<!-- ============ REVOPS LOOP ============ -->
+<section class="panel" id="loop">
+  <h2 class="sec">Mapped to the RevOps Loop™</h2>
+  <p class="lead">The whole engagement is sequenced on Sparkon's four-stage loop. Sequencing matters:
+    we fix data <em>before</em> we automate on it, because automating a broken process just breaks
+    things faster.</p>
+  <div class="loop">
+    <div class="stage"><div class="num">STAGE 1</div><h4>Process &amp; Design</h4>
+      <p>Map how lending &amp; treasury revenue actually flows. Current-state diagrams, gap analysis,
+      and an automation-potential score on every step.</p></div>
+    <div class="stage"><div class="num">STAGE 2</div><h4>Foundational Data Fix</h4>
+      <p>CRM audit (dupes, gaps), householding, naming conventions, permissions, and hygiene workflows.
+      Enrichment via Clay/Breeze. The unglamorous stage that makes everything after it work.</p></div>
+    <div class="stage"><div class="num">STAGE 3</div><h4>Build</h4>
+      <p>Custom objects, pipelines, workflows, integrations to core/nCino/Aircall, and the AI agent
+      layer on Claude/OpenAI/Breeze connectors. Dashboards for RMs and leadership.</p></div>
+    <div class="stage"><div class="num">STAGE 4</div><h4>Scale</h4>
+      <p>Weekly RevOps intelligence briefs on funnel health &amp; velocity, then define the next metric
+      to pursue. The loop repeats — the system compounds.</p></div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h3 style="margin-top:2px">Requirements → design translation (the method)</h3>
+    <table>
+      <tr><th>Business need (from discovery)</th><th>Technical design decision</th></tr>
+      <tr><td>"See the whole relationship, not just a loan"</td><td>Custom <code>Relationship</code> object as the hub; Facilities, Treasury Products, and Deals associate to it — not to a bare Company.</td></tr>
+      <tr><td>"Stop deals going stale silently"</td><td><code>days_in_stage</code> + <code>last_activity</code> properties → stale/going-cold workflows → RM + manager alerts.</td></tr>
+      <tr><td>"Grow treasury on our loan book"</td><td><code>treasury_products_held</code> score property → cross-sell workflow triggers at Credit Approval, before funding.</td></tr>
+      <tr><td>"Prove who did what for audit"</td><td>Governance: locked properties, activity logging, role-based permissions, retained associations.</td></tr>
+      <tr><td>"Forecast we can trust"</td><td>Weighted pipeline from <code>probability</code> × <code>amount</code>; deterministic reporting, not RM optimism.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ ARCHITECTURE ============ -->
+<section class="panel" id="arch">
+  <h2 class="sec">CRM architecture</h2>
+  <p class="lead">A banking-native data model. Standard HubSpot objects don't describe a commercial
+    relationship, so we extend the schema with custom objects and a governed property hierarchy built
+    for reporting, not just data entry.</p>
+
+  <h3>Object model</h3>
+  <div class="card" style="padding:16px 20px">
+    <table>
+      <tr><th>Object</th><th>Type</th><th>Role in the model</th><th>Key associations</th></tr>
+      <tr><td><b>Relationship</b></td><td><span class="pill teal">Custom</span></td><td>The hub. One per commercial entity/household — the "whole relationship" view.</td><td>↔ Contacts, Facilities, Treasury Products, Deals</td></tr>
+      <tr><td><b>Loan Opportunity</b></td><td><span class="pill grey">Deal</span></td><td>An in-flight financing request moving through the lending pipeline.</td><td>↔ Relationship, Facility (on funding)</td></tr>
+      <tr><td><b>Facility</b></td><td><span class="pill teal">Custom</span></td><td>A funded/booked loan, synced read-only from nCino/core. Powers renewals &amp; exposure.</td><td>↔ Relationship</td></tr>
+      <tr><td><b>Treasury Product</b></td><td><span class="pill teal">Custom</span></td><td>Deposit/TM product holdings — the cross-sell surface.</td><td>↔ Relationship</td></tr>
+      <tr><td><b>Referral</b></td><td><span class="pill teal">Custom</span></td><td>Cross-division hand-off with a full source/owner trail.</td><td>↔ Relationship, RM (owner)</td></tr>
+    </table>
+  </div>
+
+  <h3>Custom property schema — <span class="muted" style="font-weight:600">Relationship object (excerpt)</span></h3>
+  <div class="card" style="padding:16px 20px">
+    <table>
+      <tr><th>Property</th><th>Type</th><th>Group</th><th>Why it exists</th></tr>
+      <tr><td><code>relationship_tier</code></td><td>Dropdown (A/B/C)</td><td>Segmentation</td><td>Drives service model, routing, and reporting cuts.</td></tr>
+      <tr><td><code>naics_sector</code></td><td>Dropdown</td><td>Firmographics</td><td>Industry concentration &amp; targeting; clean for reporting vs. free-text.</td></tr>
+      <tr><td><code>primary_rm</code></td><td>HubSpot user</td><td>Ownership</td><td>Book ownership, alerts, scorecards.</td></tr>
+      <tr><td><code>credit_exposure</code></td><td>Number (currency)</td><td>Risk</td><td>Rolled from associated Facilities; portfolio concentration view.</td></tr>
+      <tr><td><code>risk_rating</code></td><td>Number (1–7)</td><td>Risk</td><td>Read-only sync from core; gates cross-sell &amp; flags weak credit.</td></tr>
+      <tr><td><code>treasury_products_held</code></td><td>Number (calc)</td><td>Cross-sell</td><td>Count of associated Treasury Products; the cross-sell trigger.</td></tr>
+      <tr><td><code>kyc_status</code></td><td>Dropdown</td><td>Compliance</td><td>Blocks stage progression until satisfied; audit trail.</td></tr>
+      <tr><td><code>next_review_date</code></td><td>Date</td><td>Servicing</td><td>Annual review &amp; renewal automation.</td></tr>
+    </table>
+    <div class="note" style="margin-top:14px"><b>Governance note.</b> Every property has a naming
+      convention, an owner, and a defined type chosen to <em>preserve reporting</em>. HubSpot's own
+      "you need RevOps" signal is <em>"custom properties that limit reporting"</em> — this schema is
+      designed against exactly that failure.</div>
+  </div>
+
+  <h3>Commercial Lending pipeline</h3>
+  <div class="card">
+    <div class="funnel">
+      <div class="fstage"><span class="name">1 · Prospect</span><div class="fbar" style="width:26%">2 deals</div><span class="val">$24.2M · entry criteria: identified need</span></div>
+      <div class="fstage"><span class="name">2 · Discovery</span><div class="fbar" style="width:20%">2 deals</div><span class="val">$13.5M · needs analysis logged</span></div>
+      <div class="fstage"><span class="name">3 · Term Sheet</span><div class="fbar" style="width:30%">3 deals</div><span class="val">$7.5M · indicative terms issued</span></div>
+      <div class="fstage"><span class="name">4 · Underwriting</span><div class="fbar" style="width:30%">3 deals</div><span class="val">$26.7M · credit package in review</span></div>
+      <div class="fstage"><span class="name">5 · Credit Approval</span><div class="fbar" style="width:30%">3 deals</div><span class="val">$19.9M · committee decision</span></div>
+      <div class="fstage"><span class="name">6 · Docs</span><div class="fbar" style="width:12%">1 deal</div><span class="val">$5.6M · documentation &amp; closing</span></div>
+      <div class="fstage"><span class="name">7 · Funded</span><div class="fbar" style="width:10%;background:linear-gradient(90deg,#0d9488,#15803d)">1 deal</div><span class="val">$1.85M · booked → creates Facility</span></div>
+    </div>
+    <p class="muted" style="font-size:13px;margin-top:12px">Each stage has explicit entry criteria and a
+      required-field gate (e.g. <code>kyc_status</code> must clear before Underwriting). Funding a deal
+      auto-creates a <code>Facility</code> record and updates the relationship's exposure. Two more
+      pipelines run in parallel: <b>Treasury Management</b> and cross-division <b>Referral</b>.</p>
+  </div>
+</section>
+
+<!-- ============ WORKFLOWS ============ -->
+<section class="panel" id="flows">
+  <h2 class="sec">Workflow automation</h2>
+  <p class="lead">Every workflow is specced from the process first, approved, then logged — so the
+    portal doesn't rot into hundreds of orphaned automations nobody understands. Six of the core builds:</p>
+
+  <div class="grid g2">
+    <div class="card">
+      <span class="pill gold">Routing</span>
+      <h3 style="margin:10px 0 4px">Lead → RM assignment</h3>
+      <p class="muted" style="font-size:13.5px;margin:0"><b>Trigger:</b> new Relationship created.
+      <b>Logic:</b> route by <code>naics_sector</code> + territory + book capacity → set <code>primary_rm</code>,
+      create intro task, start SLA timer. <b>Guard:</b> round-robin fallback if owner unset in 4h.</p>
+    </div>
+    <div class="card">
+      <span class="pill teal">Hygiene</span>
+      <h3 style="margin:10px 0 4px">Stale-deal &amp; going-cold alerts</h3>
+      <p class="muted" style="font-size:13.5px;margin:0"><b>Trigger:</b> <code>days_in_stage</code> &gt; 21
+      OR <code>last_activity</code> &gt; 14d. <b>Action:</b> flag deal, notify RM, escalate to manager on
+      day 30. <b>Why:</b> this is what keeps forecast honest.</p>
+    </div>
+    <div class="card">
+      <span class="pill sky">Revenue</span>
+      <h3 style="margin:10px 0 4px">Treasury cross-sell trigger</h3>
+      <p class="muted" style="font-size:13.5px;margin:0"><b>Trigger:</b> Loan Opportunity enters Credit
+      Approval AND <code>treasury_products_held</code> &lt; 2. <b>Action:</b> create treasury cross-sell
+      task + draft the play — <em>before</em> the loan funds, while attention is high.</p>
+    </div>
+    <div class="card">
+      <span class="pill grey">Compliance</span>
+      <h3 style="margin:10px 0 4px">KYC gate</h3>
+      <p class="muted" style="font-size:13.5px;margin:0"><b>Trigger:</b> attempt to advance to
+      Underwriting. <b>Logic:</b> if <code>kyc_status</code> ≠ Cleared → block, create compliance task,
+      log the hold. <b>Value:</b> audit-ready trail, no manual policing.</p>
+    </div>
+    <div class="card">
+      <span class="pill gold">Retention</span>
+      <h3 style="margin:10px 0 4px">Maturity &amp; annual-review engine</h3>
+      <p class="muted" style="font-size:13.5px;margin:0"><b>Trigger:</b> Facility <code>maturity_date</code>
+      or Relationship <code>next_review_date</code> within 90d. <b>Action:</b> renewal opportunity +
+      RM task. <b>Why:</b> renewals are the cheapest revenue in the book.</p>
+    </div>
+    <div class="card">
+      <span class="pill teal">Coordination</span>
+      <h3 style="margin:10px 0 4px">Referral hand-off</h3>
+      <p class="muted" style="font-size:13.5px;margin:0"><b>Trigger:</b> Referral created. <b>Action:</b>
+      notify receiving division, set owner, timestamp the hand-off, close the loop back to source RM.
+      <b>Value:</b> no more lost cross-division referrals.</p>
+    </div>
+  </div>
+  <div class="note"><b>Build discipline.</b> Each of these ships with a build-log entry (trigger,
+    enrollment criteria, actions, owner, test result) so the next person — or an auditor — can read the
+    portal like documentation. A prose promise doesn't hold; a logged, tested workflow does.</div>
+</section>
+
+<!-- ============ INTEGRATIONS ============ -->
+<section class="panel" id="integ">
+  <h2 class="sec">Integration &amp; migration architecture</h2>
+  <p class="lead">HubSpot becomes the hub of the front office while the systems of record stay
+    authoritative. Data direction is deliberate: money-movement systems are read-only into HubSpot;
+    engagement flows back out.</p>
+
+  <div class="card">
+    <div class="diagram">
+      <div>
+        <div class="sys"><span class="t">Fiserv / FIS — core banking</span><div class="d">→ read-only: deposits, risk rating, exposure</div></div>
+        <div class="sys"><span class="t">nCino — loan origination</span><div class="d">↔ bidirectional: opportunity ↔ facility</div></div>
+        <div class="sys"><span class="t">Aircall</span><div class="d">↔ RM calls logged to the timeline</div></div>
+      </div>
+      <div>
+        <div class="flowlbl">▶ sync ▶</div>
+        <div class="hub"><b>HubSpot</b><div style="font-size:12px;color:#bcd0ec;margin-top:6px">Engagement &amp; intelligence layer</div></div>
+        <div class="flowlbl">◀ sync ◀</div>
+      </div>
+      <div>
+        <div class="sys"><span class="t">Snowflake — data warehouse</span><div class="d">↔ two-way: reporting &amp; AI feature store</div></div>
+        <div class="sys"><span class="t">Marketing automation</span><div class="d">← segments from HubSpot</div></div>
+        <div class="sys"><span class="t">Custom APIs / webhooks</span><div class="d">↔ middleware for anything bespoke</div></div>
+      </div>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin-top:14px;text-align:center">Aircall &amp; Snowflake
+      are named intentionally — both are Sparkon technology partners, so this maps to the real toolchain.</p>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3 style="margin-top:2px">Data migration plan</h3>
+      <ul class="tight">
+        <li><b>Extract</b> from legacy CRM + spreadsheets; profile for quality first.</li>
+        <li><b>Cleanse &amp; dedup</b> — householding logic to merge fragmented relationships.</li>
+        <li><b>Map</b> to the new object model with a documented field-mapping sheet.</li>
+        <li><b>Stage &amp; validate</b> in a sandbox; reconcile record counts and spot-check.</li>
+        <li><b>Cutover</b> in a controlled window with rollback; then verify associations.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:2px">Governance &amp; security (ISO 27001-aligned)</h3>
+      <ul class="tight">
+        <li><b>Role-based permissions</b> — RMs see their book; leadership sees all; compliance read-all.</li>
+        <li><b>Locked/synced properties</b> — risk &amp; exposure can't be hand-edited.</li>
+        <li><b>Naming conventions &amp; property governance</b> to keep reporting clean over time.</li>
+        <li><b>Activity logging &amp; retention</b> for audit; PII handling per policy.</li>
+        <li><b>Least-privilege API keys</b> and monitored integration sync health.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AI AGENT ============ -->
+<section class="panel" id="ai">
+  <h2 class="sec">AI agent layer — <span class="muted" style="font-weight:600">live demo</span></h2>
+  <p class="lead">Stage 4 of the loop, made real. The <b>RevOps Intelligence Agent</b> reads the pipeline
+    and produces a weekly brief + next-best-actions. Key design choice: the <em>numbers are computed
+    deterministically</em> and handed to the model as facts — the AI writes judgment, never arithmetic.
+    Click run to watch it work on Northbridge's live pipeline.</p>
+
+  <div class="agent">
+    <div class="bar">
+      <span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span>
+      <span class="dot" style="background:#27c93f"></span>
+      <span class="title">revops_intelligence_agent.py — Northbridge Commercial Bank</span>
+    </div>
+    <div class="body" id="agentBody">
+      <span class="muted">$ ready — 14 open deals loaded from HubSpot pipeline export.</span>
+    </div>
+  </div>
+  <div style="margin-top:14px"><button class="runbtn" id="runAgent">▶ Generate this week's brief</button>
+    <span class="muted" style="font-size:12.5px;margin-left:10px">Runs client-side; the real script also runs against Claude or OpenAI.</span></div>
+
+  <div class="brief" id="briefOut">
+    <h4>RevOps Intelligence Brief — Northbridge Commercial Bank</h4>
+    <div class="gen">Generated 2026-08-08 · 14 open deals · $44.78M weighted · for the Head of Commercial Banking</div>
+
+    <h5>Headline</h5>
+    <p>The book is healthy on paper — $97.40M open, $44.78M weighted — but value is concentrated
+    late-funnel and three of your four stalled deals sit with one team. The single most important move
+    this week: unstick the $12.7M in underwriting that has gone quiet, or Q3 funding slips a cycle.</p>
+
+    <h5>At-risk this week</h5>
+    <ul class="tight">
+      <li><span class="risk">Coastal Dental Partners ($3.40M, Priya Raman)</span> — 41 days in Underwriting,
+      19 days no touch, risk rating 5. Get an underwriting decision or move to closed-lost by Friday.</li>
+      <li><span class="risk">Copperfield Brewing ($1.90M, Dana Whitfield)</span> — 38 days in Term Sheet,
+      33 days cold, risk 5. Requalify or release.</li>
+      <li><span class="risk">Summit Wealth Advisors ($1.50M, Dana Whitfield)</span> — 31 days in Discovery,
+      27 days cold. Early enough to save with a single touch.</li>
+      <li><b>Harbor Point Medical ($7.80M, Marcus Lee)</b> — 22 days in Underwriting on your 2nd-largest
+      weighted deal. Protect the timeline.</li>
+    </ul>
+
+    <h5>Cross-sell openings</h5>
+    <ul class="tight">
+      <li><b>Greenline Utilities ($15.50M)</b> — one treasury product on a $15.5M relationship. Lead with
+      commercial deposits + payables now, during underwriting.</li>
+      <li><b>Harbor Point Medical ($7.80M)</b> — zero treasury products; healthcare payables + merchant
+      services is the natural bundle.</li>
+      <li><b>Northgate Retail ($6.70M)</b> &amp; <b>Cascade Freight ($4.20M)</b> — both in Credit Approval;
+      attach before funding.</li>
+    </ul>
+
+    <h5>Next-best-actions by RM</h5>
+    <p><b>Priya Raman</b> ($46.60M open) — force the Coastal Dental decision; open treasury on Greenline
+    before it funds; hold Northgate's 8/30 close.<br>
+    <b>Marcus Lee</b> ($38.50M open) — guard Harbor Point's underwriting timeline; attach treasury while
+    live; push Alpine (Docs, 90%) to funded.<br>
+    <b>Dana Whitfield</b> ($12.30M open, 2 of 5 stale) — one touch each to Summit &amp; Copperfield this
+    week; advance Cascade and attach a 2nd treasury product.</p>
+
+    <h5>Metric to pursue next cycle</h5>
+    <p>Cut average days-in-stage for <b>Underwriting</b> from its current drag (two deals &gt;21 days) to
+    under 15 — that's where the largest weighted value sits and where stalls cluster.</p>
+    <p class="muted" style="font-size:12px;border-top:1px solid var(--line);padding-top:10px">Numbers
+    computed deterministically from the pipeline export; narrative &amp; prioritization generated by the
+    agent. The model is given the facts, never asked to do the math.</p>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h3 style="margin-top:2px">Other agents in the layer</h3>
+    <div class="grid g3">
+      <div><b>Order/Status Agent</b><p class="muted" style="font-size:13px">RM asks "where's the Cascade deal?" in natural language; agent answers from HubSpot + nCino.</p></div>
+      <div><b>Next-Best-Action Agent</b><p class="muted" style="font-size:13px">Per-relationship cross-sell &amp; retention suggestions surfaced in the RM's daily view.</p></div>
+      <div><b>Data-Hygiene Sentinel</b><p class="muted" style="font-size:13px">Read-only nightly sweep; snapshots the portal and diffs run-over-run to catch drift.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLAN ============ -->
+<section class="panel" id="plan">
+  <h2 class="sec">Delivery plan — Agile / SCRUM</h2>
+  <p class="lead">Scoped, dated increments with a clear definition of done and a demoable output every
+    sprint. Sequenced on the RevOps Loop so we never automate on unclean data.</p>
+  <div class="card">
+    <div class="sprint"><div class="w">Sprint 0<br><span class="muted" style="font-weight:500">Week 1</span></div>
+      <div class="body"><b>Discovery &amp; design</b> — process mapping, current-state diagrams, gap
+      analysis, automation-potential scoring, signed architecture spec. <span class="pill gold" style="margin-left:6px">Stage 1</span></div></div>
+    <div class="sprint"><div class="w">Sprint 1<br><span class="muted" style="font-weight:500">Weeks 2–3</span></div>
+      <div class="body"><b>Data foundation</b> — audit &amp; cleanse legacy data, householding, naming
+      conventions, permissions model, hygiene workflows. <span class="pill teal" style="margin-left:6px">Stage 2</span></div></div>
+    <div class="sprint"><div class="w">Sprint 2<br><span class="muted" style="font-weight:500">Weeks 4–5</span></div>
+      <div class="body"><b>Core build</b> — custom objects, property schema, Commercial Lending pipeline,
+      first 3 workflows. Demo: a relationship record + a deal moving through the funnel. <span class="pill sky" style="margin-left:6px">Stage 3</span></div></div>
+    <div class="sprint"><div class="w">Sprint 3<br><span class="muted" style="font-weight:500">Weeks 6–7</span></div>
+      <div class="body"><b>Integrations &amp; migration</b> — core/nCino/Aircall/Snowflake syncs, staged
+      migration + validation, controlled cutover. <span class="pill sky" style="margin-left:6px">Stage 3</span></div></div>
+    <div class="sprint"><div class="w">Sprint 4<br><span class="muted" style="font-weight:500">Weeks 8–9</span></div>
+      <div class="body"><b>AI layer &amp; dashboards</b> — RevOps Intelligence Agent, next-best-action,
+      hygiene sentinel; RM + leadership dashboards. <span class="pill sky" style="margin-left:6px">Stage 3</span></div></div>
+    <div class="sprint"><div class="w">Sprint 5<br><span class="muted" style="font-weight:500">Week 10+</span></div>
+      <div class="body"><b>Adoption &amp; scale</b> — enablement, first intelligence briefs, define the next
+      metric, and begin the loop again. <span class="pill gold" style="margin-left:6px">Stage 4</span></div></div>
+  </div>
+  <div class="grid g3" style="margin-top:8px">
+    <div class="stat"><div class="n">~10 wk</div><div class="l">To full production</div></div>
+    <div class="stat"><div class="n">Every sprint</div><div class="l">Demoable output</div></div>
+    <div class="stat"><div class="n">Build log</div><div class="l">On every automation</div></div>
+  </div>
+</section>
+
+<!-- ============ ENGINEERING NOTES ============ -->
+<section class="panel" id="notes">
+  <h2 class="sec">Engineering notes — assumptions &amp; trade-offs</h2>
+  <p class="lead">The honest half of any real scope. These are the constraints, decisions, and risks I'd
+    put in front of the client on day one — because the parts that get hard are exactly the parts worth
+    naming early.</p>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3 style="margin-top:2px">Platform prerequisites</h3>
+      <p class="muted" style="font-size:13.8px;margin:0">The custom-object model assumes a <b>HubSpot
+      Enterprise</b> tier (Sales/Service Enterprise or Ops Hub) — custom objects, calculated properties,
+      and field-level permissions aren't available below it. Right-sizing the license is part of scoping,
+      not an afterthought.</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:2px">Custom object vs. Company — a real decision</h3>
+      <p class="muted" style="font-size:13.8px;margin:0">A dedicated <code>Relationship</code> object is
+      the cleaner model for householding entities, but it adds cost and complexity. The lighter
+      alternative is the standard <b>Company</b> object with parent/child associations. I'd default to
+      Company + householding unless the entity hierarchy genuinely needs its own object — <em>chosen,
+      not assumed.</em></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:2px">Integration reality — where the effort actually is</h3>
+    <table>
+      <tr><th>System</th><th>Connector</th><th>Real lift</th></tr>
+      <tr><td>Aircall</td><td><span class="pill teal">Native</span></td><td>Low — install &amp; map. Calls to timeline out of the box.</td></tr>
+      <tr><td>Snowflake</td><td><span class="pill teal">Native data share</span></td><td>Low–medium — HubSpot's Snowflake share; model the tables.</td></tr>
+      <tr><td>nCino (LOS)</td><td><span class="pill gold">Custom</span></td><td><b>High</b> — no native connector. Custom API / iPaaS (Workato, Tray) with field mapping &amp; conflict rules.</td></tr>
+      <tr><td>Fiserv / FIS (core)</td><td><span class="pill gold">Custom</span></td><td><b>High</b> — read-only via middleware; batch or event-driven. This is the critical-path risk.</td></tr>
+    </table>
+    <div class="note" style="margin-top:14px"><b>Where I'd focus risk.</b> The core and LOS integrations
+      are the long pole, not the HubSpot build. I'd de-risk them in a spike during Sprint 0 rather than
+      discover the effort in Sprint 3.</div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3 style="margin-top:2px">The "calculated" property caveat</h3>
+      <p class="muted" style="font-size:13.8px;margin:0"><code>treasury_products_held</code> can't be a
+      naive formula — HubSpot doesn't natively count associated records in a simple calculated property.
+      It's maintained as a <b>rollup / association-count</b> via a workflow-incremented counter or Ops Hub
+      calculated property. Small detail, but it's the kind of thing that breaks silently if you assume it.</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:2px">Honest timeline</h3>
+      <p class="muted" style="font-size:13.8px;margin:0">The ~10-week plan is a <b>Phase-1 MVP</b>: CRM
+      model, pipelines, workflows, dashboards, and the AI layer on <em>clean</em> migrated data. Full
+      bidirectional core/nCino integration and a complete historical migration realistically extend the
+      program to <b>~4–6 months</b>, phased. I'd rather commit to a real date than a hopeful one.</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#e6c9c9;background:#fdf6f5">
+    <h3 style="margin-top:2px;color:#a13226">AI data governance — the one a bank's CISO will ask about</h3>
+    <p style="font-size:14px;color:#5b2e28;margin:6px 0 0">Sending customer financial data to a public LLM
+    endpoint is a non-starter in banking. How I'd actually deploy the AI layer:</p>
+    <ul class="tight" style="color:#5b2e28">
+      <li><b>Enterprise, no-retention inference</b> — Azure OpenAI or AWS Bedrock in the bank's own tenant,
+      with a signed DPA and zero-retention terms. Not the public API.</li>
+      <li><b>Deterministic layer keeps math &amp; logic local</b> — the model never computes; it only writes
+      narrative over pre-computed facts (see the AI tab).</li>
+      <li><b>Entity anonymization option</b> — tokenize relationship names / amounts before inference and
+      re-hydrate on return when policy requires it.</li>
+      <li><b>Human-in-the-loop</b> — the agent drafts the brief; an RM or manager approves. No autonomous
+      action on customer accounts.</li>
+    </ul>
+    <p style="font-size:13px;color:#7a4a43;margin:10px 0 0">This is the difference between a demo and
+    something a regulated institution will actually run.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Sample HubSpot implementation blueprint · Prepared by Vaughn English for Sparkon · The client is
+  illustrative; the architecture, schema, workflows, and AI agent are real and buildable.
+</footer>
+
+<script>
+  // Tab switching
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.p).classList.add('active');
+    window.scrollTo({top: 0, behavior: 'instant'});
+  }));
+
+  // ---- Live AI agent demo (deterministic compute in the browser) ----
+  const deals = [
+    {id:'NB-1042',name:'Cascade Freight Systems',stage:'Credit Approval',amt:4200000,prob:.75,rm:'Dana Whitfield',dis:9,touch:3,tp:1,risk:4},
+    {id:'NB-1043',name:'Harbor Point Medical Group',stage:'Underwriting',amt:7800000,prob:.6,rm:'Marcus Lee',dis:22,touch:11,tp:0,risk:3},
+    {id:'NB-1044',name:'Verde Organic Foods',stage:'Term Sheet',amt:2500000,prob:.4,rm:'Dana Whitfield',dis:6,touch:2,tp:2,risk:4},
+    {id:'NB-1045',name:'Sterling Property Partners',stage:'Discovery',amt:12000000,prob:.25,rm:'Priya Raman',dis:4,touch:1,tp:0,risk:3},
+    {id:'NB-1046',name:'Ironclad Fabrication',stage:'Funded',amt:1850000,prob:1,rm:'Marcus Lee',dis:2,touch:5,tp:1,risk:4},
+    {id:'NB-1047',name:'Coastal Dental Partners',stage:'Underwriting',amt:3400000,prob:.6,rm:'Priya Raman',dis:41,touch:19,tp:0,risk:5},
+    {id:'NB-1048',name:'Meridian Logistics',stage:'Prospect',amt:2200000,prob:.1,rm:'Dana Whitfield',dis:3,touch:0,tp:0,risk:3},
+    {id:'NB-1049',name:'Alpine Construction Co',stage:'Docs',amt:5600000,prob:.9,rm:'Marcus Lee',dis:7,touch:4,tp:3,risk:4},
+    {id:'NB-1050',name:'Riverside Auto Group',stage:'Credit Approval',amt:9000000,prob:.75,rm:'Priya Raman',dis:14,touch:8,tp:2,risk:3},
+    {id:'NB-1051',name:'Summit Wealth Advisors',stage:'Discovery',amt:1500000,prob:.25,rm:'Dana Whitfield',dis:31,touch:27,tp:1,risk:4},
+    {id:'NB-1052',name:'BlueSky Aviation Services',stage:'Term Sheet',amt:3100000,prob:.4,rm:'Marcus Lee',dis:5,touch:6,tp:0,risk:4},
+    {id:'NB-1053',name:'Greenline Utilities',stage:'Underwriting',amt:15500000,prob:.6,rm:'Priya Raman',dis:18,touch:9,tp:1,risk:3},
+    {id:'NB-1054',name:'Fairfield Senior Living',stage:'Prospect',amt:22000000,prob:.1,rm:'Marcus Lee',dis:2,touch:1,tp:0,risk:3},
+    {id:'NB-1055',name:'Copperfield Brewing',stage:'Term Sheet',amt:1900000,prob:.4,rm:'Dana Whitfield',dis:38,touch:33,tp:0,risk:5},
+    {id:'NB-1056',name:'Northgate Retail Holdings',stage:'Credit Approval',amt:6700000,prob:.75,rm:'Priya Raman',dis:11,touch:7,tp:1,risk:4},
+  ];
+  const usd = n => n>=1e6 ? '$'+(n/1e6).toFixed(2)+'M' : '$'+n.toLocaleString();
+  const body = document.getElementById('agentBody');
+  const btn = document.getElementById('runAgent');
+  const out = document.getElementById('briefOut');
+  const sleep = ms => new Promise(r=>setTimeout(r,ms));
+  function line(html, cls){ const d=document.createElement('div'); if(cls)d.className=cls; d.innerHTML=html; body.appendChild(d); }
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; body.innerHTML=''; out.classList.remove('show');
+    const open = deals.filter(d=>d.stage!=='Funded');
+    const totOpen = open.reduce((s,d)=>s+d.amt,0);
+    const weighted = open.reduce((s,d)=>s+d.amt*d.prob,0);
+    const stale = open.filter(d=>d.dis>21);
+    const cold = open.filter(d=>d.touch>14);
+    const cross = open.filter(d=>d.tp<2 && d.prob>=.6);
+
+    line('<span class="log">▸ loading pipeline export … 15 deals ('+open.length+' open)</span>'); await sleep(500);
+    line('<span class="log">▸ computing deterministic analytics (no LLM math)…</span>'); await sleep(650);
+    line('<span class="fact">  open value = '+usd(totOpen)+'  ·  weighted = '+usd(weighted)+'</span>'); await sleep(500);
+    line('<span class="fact">  flags → '+stale.length+' stale · '+cold.length+' going cold · '+cross.length+' cross-sell openings</span>'); await sleep(600);
+    line('<span class="log">▸ building fact sheet → sending to model (Claude / OpenAI)…</span>'); await sleep(750);
+    line('<span class="log">▸ model writing judgment layer over fixed facts…</span>'); await sleep(850);
+    line('<span class="ok">✓ brief generated — rendering below ▼</span>'); await sleep(400);
+    out.classList.add('show');
+    out.scrollIntoView({behavior:'smooth', block:'start'});
+    btn.disabled = false; btn.textContent = '↻ Re-run brief';
+  });
+</script>
+</body>
+</html>
