@@ -168,8 +168,8 @@
     <button class="tab" data-p="arch">CRM Architecture</button>
     <button class="tab" data-p="flows">Workflows</button>
     <button class="tab" data-p="integ">Integrations &amp; Migration</button>
-    <button class="tab" data-p="ai">AI Agent (live demo)</button>
-    <button class="tab" data-p="plan">Delivery Plan</button>
+    <button class="tab" data-p="ai">AI Agent (simulation)</button>
+    <button class="tab" data-p="plan">Delivery &amp; Scoping</button>
     <button class="tab" data-p="notes">Engineering Notes</button>
   </div>
 </nav>
@@ -360,6 +360,21 @@
       <b>Value:</b> no more lost cross-division referrals.</p>
     </div>
   </div>
+  <div class="card" style="margin-top:4px">
+    <h3 style="margin-top:2px">State management &amp; edge cases — where enterprise workflows actually live</h3>
+    <p class="muted" style="font-size:13.8px;margin:0 0 8px">Trigger → action is the easy 20%. Each spec above
+      also carries the unglamorous 80% that keeps a portal from corrupting itself:</p>
+    <ul class="tight" style="font-size:13.8px">
+      <li><b>Re-enrollment &amp; un-enrollment rules</b> — explicit per workflow, so a deal that bounces back a
+      stage doesn't double-fire tasks or skip the KYC gate.</li>
+      <li><b>Loop / circuit breakers</b> — property-write workflows guarded so A-updates-B-updates-A can't
+      cascade; hard caps and "if unchanged, exit" branches.</li>
+      <li><b>Missing-required-property handling</b> — a fallback branch that routes to a data-fix task instead
+      of silently failing enrollment.</li>
+      <li><b>Race conditions</b> — integration syncs vs. user edits ordered with last-write rules so a nightly
+      core sync never clobbers a rep's in-flight note.</li>
+    </ul>
+  </div>
   <div class="note"><b>Build discipline.</b> Each of these ships with a build-log entry (trigger,
     enrollment criteria, actions, owner, test result) so the next person — or an auditor — can read the
     portal like documentation. A prose promise doesn't hold; a logged, tested workflow does.</div>
@@ -394,6 +409,24 @@
       are named intentionally — both are Sparkon technology partners, so this maps to the real toolchain.</p>
   </div>
 
+  <div class="card">
+    <h3 style="margin-top:2px">System-of-Record hierarchy &amp; sync direction</h3>
+    <p class="muted" style="font-size:13.5px;margin:0 0 6px">Every field has exactly one authoritative source.
+      Naming the SoR per object up front is what prevents the classic two-systems-fight-over-one-record failure.</p>
+    <table>
+      <tr><th>Data</th><th>System of Record</th><th>Sync direction</th><th>Conflict rule</th></tr>
+      <tr><td>Facility balances, risk rating, exposure</td><td>Fiserv / FIS (core)</td><td>Core → HubSpot (read-only)</td><td>Core always wins; field locked in HubSpot</td></tr>
+      <tr><td>Loan opportunity / underwriting status</td><td>nCino (LOS)</td><td>Bidirectional</td><td>Stage owned by nCino; sales notes owned by HubSpot</td></tr>
+      <tr><td>Lead status, lifecycle stage, activities, notes</td><td>HubSpot</td><td>HubSpot → warehouse</td><td>HubSpot wins; never overwritten by a batch sync</td></tr>
+      <tr><td>Call recordings &amp; logs</td><td>Aircall</td><td>Aircall → HubSpot</td><td>Append-only to the timeline</td></tr>
+      <tr><td>Reporting / AI feature store</td><td>Snowflake</td><td>HubSpot ↔ Snowflake</td><td>Analytical only; never writes back operational fields</td></tr>
+    </table>
+    <div class="note" style="margin-top:14px"><b>Middleware, not point-to-point.</b> Core/LOS syncs run through an
+      iPaaS layer (Workato / Boomi / MuleSoft) with staging tables, a sync-error queue, field-level write
+      permissions, and idempotent retries — not a naive bidirectional connector. That's the difference between
+      a clean diagram and a banking integration that survives a batch window and PII-masking rules.</div>
+  </div>
+
   <div class="grid g2">
     <div class="card">
       <h3 style="margin-top:2px">Data migration plan</h3>
@@ -420,11 +453,16 @@
 
 <!-- ============ AI AGENT ============ -->
 <section class="panel" id="ai">
-  <h2 class="sec">AI agent layer — <span class="muted" style="font-weight:600">live demo</span></h2>
-  <p class="lead">Stage 4 of the loop, made real. The <b>RevOps Intelligence Agent</b> reads the pipeline
-    and produces a weekly brief + next-best-actions. Key design choice: the <em>numbers are computed
-    deterministically</em> and handed to the model as facts — the AI writes judgment, never arithmetic.
-    Click run to watch it work on Northbridge's live pipeline.</p>
+  <h2 class="sec">AI agent layer — <span class="muted" style="font-weight:600">interactive simulation</span></h2>
+  <p class="lead">Stage 4 of the loop. The <b>RevOps Intelligence Agent</b> reads the pipeline and produces
+    a weekly brief + next-best-actions. Key design choice: the <em>numbers are computed deterministically</em>
+    and handed to the model as facts — the AI writes judgment, never arithmetic.</p>
+  <div class="note"><b>Honest framing —</b> the demo below is a <b>client-side proof-of-concept simulator</b>. It
+    computes the real pipeline analytics in your browser and replays a representative brief with zero latency,
+    so it always runs live in front of you. It does <b>not</b> call an LLM from this page. The production agent
+    is a real Python script (<code>revops_intelligence_agent.py</code>) that sends the same deterministic fact
+    sheet to Claude or OpenAI and returns the narrative — identical design, real inference. I'd rather show you
+    the pattern honestly than dress up a switch statement as "AI."</div>
 
   <div class="agent">
     <div class="bar">
@@ -436,8 +474,8 @@
       <span class="muted">$ ready — 14 open deals loaded from HubSpot pipeline export.</span>
     </div>
   </div>
-  <div style="margin-top:14px"><button class="runbtn" id="runAgent">▶ Generate this week's brief</button>
-    <span class="muted" style="font-size:12.5px;margin-left:10px">Runs client-side; the real script also runs against Claude or OpenAI.</span></div>
+  <div style="margin-top:14px"><button class="runbtn" id="runAgent">▶ Run the simulation</button>
+    <span class="muted" style="font-size:12.5px;margin-left:10px">Client-side proof-of-concept · deterministic analytics computed live in-browser · production agent runs the same fact sheet against Claude / OpenAI in Python.</span></div>
 
   <div class="brief" id="briefOut">
     <h4>RevOps Intelligence Brief — Northbridge Commercial Bank</h4>
@@ -522,9 +560,38 @@
       metric, and begin the loop again. <span class="pill gold" style="margin-left:6px">Stage 4</span></div></div>
   </div>
   <div class="grid g3" style="margin-top:8px">
-    <div class="stat"><div class="n">~10 wk</div><div class="l">To full production</div></div>
+    <div class="stat"><div class="n">~10 wk</div><div class="l">MVP to production</div></div>
     <div class="stat"><div class="n">Every sprint</div><div class="l">Demoable output</div></div>
     <div class="stat"><div class="n">Build log</div><div class="l">On every automation</div></div>
+  </div>
+
+  <h3>Scope, sizing &amp; effort — the agency lens</h3>
+  <div class="card" style="padding:16px 20px">
+    <table>
+      <tr><th>Phase</th><th>Est. effort</th><th>Primary skillset</th></tr>
+      <tr><td>Discovery &amp; solution design</td><td>40–60 hrs</td><td>Solutions Architect</td></tr>
+      <tr><td>Data audit, cleanse &amp; migration</td><td>60–100 hrs</td><td>RevOps / Data Engineer</td></tr>
+      <tr><td>CRM build (objects, pipelines, workflows)</td><td>80–120 hrs</td><td>HubSpot Admin / Architect</td></tr>
+      <tr><td>Integrations (core / nCino / Aircall / Snowflake)</td><td>120–200 hrs</td><td>Integration Engineer</td></tr>
+      <tr><td>AI layer &amp; dashboards</td><td>40–70 hrs</td><td>RevOps + Developer</td></tr>
+      <tr><td>UAT, enablement &amp; adoption</td><td>40–60 hrs</td><td>Delivery Lead / Trainer</td></tr>
+    </table>
+    <p class="muted" style="font-size:12.5px;margin-top:10px">Ranges, not promises — the integration line is the
+      widest because core-banking middleware is where these projects over-run. Sized to be defended in an SOW,
+      then tightened after the Sprint-0 integration spike.</p>
+  </div>
+
+  <h3>Adoption &amp; change management — because bankers resist CRMs</h3>
+  <div class="grid g3">
+    <div class="card"><b>Kill manual logging</b><p class="muted" style="font-size:13px;margin:6px 0 0">Aircall
+      auto-logs calls; mobile app + Sales extension capture activity so RMs type as little as possible. Adoption
+      dies on data-entry friction, not on features.</p></div>
+    <div class="card"><b>Champions, not mandates</b><p class="muted" style="font-size:13px;margin:6px 0 0">Pilot with
+      one lending team, turn their wins into the internal case, then roll out — beats a top-down "everyone's on
+      HubSpot Monday."</p></div>
+    <div class="card"><b>Measure adoption, not just build</b><p class="muted" style="font-size:13px;margin:6px 0 0">Track
+      logged-activity rate and pipeline-hygiene score per RM. A system nobody uses is a failed project no matter
+      how clean the build is.</p></div>
   </div>
 </section>
 
@@ -544,12 +611,14 @@
       not an afterthought.</p>
     </div>
     <div class="card">
-      <h3 style="margin-top:2px">Custom object vs. Company — a real decision</h3>
-      <p class="muted" style="font-size:13.8px;margin:0">A dedicated <code>Relationship</code> object is
-      the cleaner model for householding entities, but it adds cost and complexity. The lighter
-      alternative is the standard <b>Company</b> object with parent/child associations. I'd default to
-      Company + householding unless the entity hierarchy genuinely needs its own object — <em>chosen,
-      not assumed.</em></p>
+      <h3 style="margin-top:2px">Custom objects vs. native — the trade-off I'd defend</h3>
+      <p class="muted" style="font-size:13.8px;margin:0">Four custom objects is deliberately aggressive and it
+      has a real cost: they sit outside default report builders, complicate line-of-sight attribution, and
+      consume API. So the honest call is <em>bend native first</em> — model <code>Relationship</code> as a
+      <b>Company</b> with parent/child householding and <code>Loan Opportunity</code> as a <b>Deal</b> with a
+      custom pipeline. Reserve true custom objects for <code>Facility</code> and <code>Treasury Product</code>,
+      where the 1:N banking cardinality genuinely breaks the native model. Accepting Custom-Report-Builder
+      complexity to model real banking relationships is a choice to make <em>with</em> the client, not a default.</p>
     </div>
   </div>
 
