@@ -206,11 +206,19 @@
     <div class="card">
       <h3 style="margin-top:2px">What we're building</h3>
       <ul class="tight">
-        <li><b>HubSpot as the engagement layer</b> — not a core replacement. It sits beside Fiserv/nCino and adds the relationship intelligence they lack.</li>
-        <li><b>A banking-native data model</b> (custom objects for Relationships, Facilities, Treasury Products, Referrals).</li>
+        <li><b>HubSpot as the engagement layer</b> — not a core replacement. It sits beside Fiserv/nCino and adds
+        the relationship intelligence they lack. Field-level ownership and conflict rules are set out in the
+        <b>System-of-Record table</b> on the Integrations tab; the sync runs through iPaaS middleware with
+        staging and an error queue, not a point-to-point connector.</li>
+        <li><b>A banking-native data model</b> — native Company (relationship householding), Deal (lending
+        pipeline) and Ticket (referrals), plus <b>exactly two custom objects</b>: Facility and Treasury Product.</li>
         <li><b>Governed pipelines</b> for Commercial Lending, Treasury, and cross-division Referrals.</li>
-        <li><b>An AI intelligence layer</b> — a weekly RevOps brief + next-best-action for every RM.</li>
-        <li><b>Audit-ready governance</b> aligned to ISO 27001 / SOC 2 expectations.</li>
+        <li><b>An AI intelligence layer</b> — a weekly RevOps brief + next-best-action for every RM. Execution
+        mechanics (trigger, payload scope, auth, retention, failure mode) are specified in <b>Engineering Notes</b>,
+        not left as a connector name.</li>
+        <li><b>Audit-ready governance</b> — permissioning, property-level controls, and activity retention
+        mapped to the bank's existing ISO 27001 / SOC 2 control set (HubSpot is in scope as a processor here,
+        not a substitute for the bank's certification).</li>
       </ul>
     </div>
   </div>
@@ -268,9 +276,9 @@
       <tr><th>Object</th><th>Type</th><th>Role in the model</th><th>Key associations</th></tr>
       <tr><td><b>Relationship</b></td><td><span class="pill grey">Company (native)</span></td><td>The hub. One per commercial entity, with <b>parent/child associations</b> for householding — native, so it keeps standard reporting and record views.</td><td>↔ Contacts, Facilities, Treasury Products, Deals</td></tr>
       <tr><td><b>Loan Opportunity</b></td><td><span class="pill grey">Deal (native)</span></td><td>An in-flight financing request moving through a custom lending pipeline.</td><td>↔ Company, Facility (on funding)</td></tr>
-      <tr><td><b>Facility</b></td><td><span class="pill teal">Custom</span></td><td>A funded/booked loan, synced read-only from nCino/core. <b>Earns its custom object</b> — a relationship holds many facilities, each with its own maturity and exposure.</td><td>↔ Company</td></tr>
+      <tr><td><b>Facility</b></td><td><span class="pill teal">Custom</span></td><td>A funded/booked loan, synced read-only from nCino/core. <b>Earns its custom object</b> — a relationship holds many facilities, each with its own maturity and exposure.</td><td>↔ Company, ↔ Deal (defined association, set on funding)</td></tr>
       <tr><td><b>Treasury Product</b></td><td><span class="pill teal">Custom</span></td><td>Deposit/TM product holdings — the cross-sell surface. <b>Earns its custom object</b> for the same 1:N reason.</td><td>↔ Company</td></tr>
-      <tr><td><b>Referral</b></td><td><span class="pill grey">Ticket (native)</span></td><td>Cross-division hand-off with a full source/owner trail — a ticket pipeline gives SLAs and routing for free.</td><td>↔ Company, RM (owner)</td></tr>
+      <tr><td><b>Referral</b></td><td><span class="pill grey">Ticket (native)</span></td><td>Cross-division hand-off. A ticket pipeline is the native fit: it ships with pipelines, SLAs, and routing, so no third custom object is needed.</td><td>↔ Company, ↔ Deal (source); owned via <code>hubspot_owner_id</code></td></tr>
     </table>
   </div>
 
@@ -281,10 +289,10 @@
       <tr><td><code>relationship_tier</code></td><td>Dropdown (A/B/C)</td><td>Segmentation</td><td>Drives service model, routing, and reporting cuts.</td></tr>
       <tr><td><code>naics_sector</code></td><td>Dropdown</td><td>Firmographics</td><td>Industry concentration &amp; targeting; clean for reporting vs. free-text.</td></tr>
       <tr><td><code>primary_rm</code></td><td>HubSpot user</td><td>Ownership</td><td>Book ownership, alerts, scorecards.</td></tr>
-      <tr><td><code>credit_exposure</code></td><td>Number (currency)</td><td>Risk</td><td>Rolled from associated Facilities; portfolio concentration view.</td></tr>
+      <tr><td><code>credit_exposure</code></td><td>Calculation — rollup (SUM)</td><td>Risk</td><td>Native Enterprise rollup summing associated Facility balances. Custom code only if an aggregation falls outside native rollup support (see Engineering Notes).</td></tr>
       <tr><td><code>risk_rating</code></td><td>Number (1–7)</td><td>Risk</td><td>Read-only sync from core; gates cross-sell &amp; flags weak credit.</td></tr>
-      <tr><td><code>treasury_products_held</code></td><td>Number (calc)</td><td>Cross-sell</td><td>Count of associated Treasury Products; the cross-sell trigger.</td></tr>
-      <tr><td><code>kyc_status</code></td><td>Dropdown</td><td>Compliance</td><td>Blocks stage progression until satisfied; audit trail.</td></tr>
+      <tr><td><code>treasury_products_held</code></td><td>Calculation — rollup (COUNT)</td><td>Cross-sell</td><td>Native Enterprise rollup counting associated Treasury Products; the cross-sell trigger.</td></tr>
+      <tr><td><code>kyc_status</code></td><td>Dropdown (edit-restricted)</td><td>Compliance</td><td>Required on the Underwriting stage <em>and</em> writable only by compliance/integration — see the layered gate in Workflows.</td></tr>
       <tr><td><code>next_review_date</code></td><td>Date</td><td>Servicing</td><td>Annual review &amp; renewal automation.</td></tr>
     </table>
     <div class="note" style="margin-top:14px"><b>Governance note.</b> Every property has a naming
@@ -304,10 +312,12 @@
       <div class="fstage"><span class="name">6 · Docs</span><div class="fbar" style="width:12%">1 deal</div><span class="val">$5.6M · documentation &amp; closing</span></div>
       <div class="fstage"><span class="name">7 · Funded</span><div class="fbar" style="width:10%;background:linear-gradient(90deg,#0d9488,#15803d)">1 deal</div><span class="val">$1.85M · booked → creates Facility</span></div>
     </div>
-    <p class="muted" style="font-size:13px;margin-top:12px">Each stage has explicit entry criteria and a
-      required-field gate (e.g. <code>kyc_status</code> must clear before Underwriting). Funding a deal
-      auto-creates a <code>Facility</code> record and updates the relationship's exposure. Two more
-      pipelines run in parallel: <b>Treasury Management</b> and cross-division <b>Referral</b>.</p>
+    <p class="muted" style="font-size:13px;margin-top:12px">Each stage has explicit entry criteria. Required
+      stage properties enforce that the compliance fields are <em>populated</em> — they cannot enforce a specific
+      <em>value</em>, which is why the KYC control is layered (see Workflows). Funding a deal triggers a
+      custom-code action that creates the associated <code>Facility</code> record; <code>credit_exposure</code>
+      then updates through its native rollup. Two more pipelines run in parallel: <b>Treasury Management</b>
+      (deal pipeline) and cross-division <b>Referral</b> (ticket pipeline).</p>
   </div>
 </section>
 
@@ -341,10 +351,16 @@
     </div>
     <div class="card">
       <span class="pill grey">Compliance</span>
-      <h3 style="margin:10px 0 4px">KYC gate</h3>
-      <p class="muted" style="font-size:13.5px;margin:0"><b>Trigger:</b> attempt to advance to
-      Underwriting. <b>Logic:</b> if <code>kyc_status</code> ≠ Cleared → block, create compliance task,
-      log the hold. <b>Value:</b> audit-ready trail, no manual policing.</p>
+      <h3 style="margin:10px 0 4px">KYC gate — a layered control, because HubSpot has no synchronous validation</h3>
+      <p class="muted" style="font-size:13.5px;margin:0">State the platform limit plainly: <b>HubSpot cannot
+      synchronously validate a <em>value</em> on stage change.</b> Required stage properties only enforce that a
+      field is <em>populated</em> — "Pending" satisfies them — and workflows fire asynchronously <em>after</em>
+      the change commits, so neither is a true block. So the gate is layered:
+      <b>(1)</b> <code>kyc_status</code> is required on the Underwriting stage, so it can't be empty;
+      <b>(2)</b> it is <b>edit-restricted</b> to compliance and the integration user, so an RM can't self-clear it;
+      <b>(3)</b> an async workflow reverts any deal that reached Underwriting while not Cleared and logs a
+      compliance task. <b>And the honest architectural call:</b> if the regulator needs a hard stop, it belongs in
+      the LOS (nCino), not the CRM — HubSpot enforces process discipline here, not the control of record.</p>
     </div>
     <div class="card">
       <span class="pill gold">Retention</span>
@@ -442,8 +458,11 @@
     <div class="card">
       <h3 style="margin-top:2px">Governance &amp; security (ISO 27001-aligned)</h3>
       <ul class="tight">
-        <li><b>Role-based permissions</b> — RMs see their book; leadership sees all; compliance read-all.</li>
-        <li><b>Locked/synced properties</b> — risk &amp; exposure can't be hand-edited.</li>
+        <li><b>Role-based permissions</b> — RMs see their book via <b>team partitioning</b> on record access;
+        leadership sees all; compliance read-all. Worth stating plainly: HubSpot's field-level visibility is
+        coarser than a core banking system's, so partitioning does the heavy lifting.</li>
+        <li><b>Property-level edit restrictions</b> — risk &amp; exposure are read-only to RMs and written only
+        by the integration user.</li>
         <li><b>Naming conventions &amp; property governance</b> to keep reporting clean over time.</li>
         <li><b>Activity logging &amp; retention</b> for audit; PII handling per policy.</li>
         <li><b>Least-privilege API keys</b> and monitored integration sync health.</li>
@@ -677,11 +696,16 @@
 
   <div class="grid g2">
     <div class="card">
-      <h3 style="margin-top:2px">The "calculated" property caveat</h3>
-      <p class="muted" style="font-size:13.8px;margin:0"><code>treasury_products_held</code> can't be a
-      naive formula — HubSpot doesn't natively count associated records in a simple calculated property.
-      It's maintained as a <b>rollup / association-count</b> via a workflow-incremented counter or Ops Hub
-      calculated property. Small detail, but it's the kind of thing that breaks silently if you assume it.</p>
+      <h3 style="margin-top:2px">Rollups: use native first, code only at the edges</h3>
+      <p class="muted" style="font-size:13.8px;margin:0"><code>credit_exposure</code> (SUM) and
+      <code>treasury_products_held</code> (COUNT) are built as <b>native Enterprise rollup calculation
+      properties</b> over the Facility / Treasury Product associations — no custom code, no API budget, no
+      maintenance debt. Reaching for Ops Hub custom code when a native rollup exists is a classic
+      over-engineering tell. Custom code earns its place only at the edges native rollups don't reach —
+      conditional aggregations (e.g. exposure excluding matured facilities), cross-object math, or
+      currency normalisation — and there I'd add a nightly reconciliation job so a missed event never leaves
+      exposure silently stale. Worth scoping either way: rollups over custom objects assume
+      <b>Enterprise</b>.</p>
     </div>
     <div class="card">
       <h3 style="margin-top:2px">Honest timeline</h3>
@@ -708,6 +732,26 @@
     </ul>
     <p style="font-size:13px;color:#7a4a43;margin:10px 0 0">This is the difference between a demo and
     something a regulated institution will actually run.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:2px">How the AI layer actually executes — not a "connector"</h3>
+    <p class="muted" style="font-size:13.8px;margin:0 0 8px">Saying "Claude/OpenAI/Breeze connectors" is a
+      slide, not an architecture. Breeze covers embedded copilot and enrichment use cases; it is <b>not</b> a
+      general LLM pipeline runner, so the weekly brief runs outside it:</p>
+    <ul class="tight" style="font-size:13.8px">
+      <li><b>Trigger &amp; compute:</b> a scheduled job (Ops Hub custom-code action or an external worker)
+      pulls the open pipeline via the CRM Search API with pagination, and computes every figure in code.</li>
+      <li><b>Payload discipline:</b> only the aggregated fact sheet goes to the model — tens of rows, not the
+      CRM. That keeps the prompt inside context limits and shrinks the data-exposure surface to a known,
+      reviewable payload.</li>
+      <li><b>Auth &amp; secrets:</b> private-app token scoped read-only to the objects it needs; model API key
+      held in a secrets manager, never in a workflow action or client-side code.</li>
+      <li><b>Storage scope:</b> the returned narrative is written back as a Note on the owner record and to the
+      warehouse; no customer data is retained by the inference provider (zero-retention tier).</li>
+      <li><b>Failure mode:</b> if the model call fails, the deterministic fact sheet still publishes — the
+      numbers never depend on the LLM being up.</li>
+    </ul>
   </div>
 </section>
 
