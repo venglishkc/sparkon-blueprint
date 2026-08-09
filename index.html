@@ -257,23 +257,24 @@
 <!-- ============ ARCHITECTURE ============ -->
 <section class="panel" id="arch">
   <h2 class="sec">CRM architecture</h2>
-  <p class="lead">A banking-native data model. Standard HubSpot objects don't describe a commercial
-    relationship, so we extend the schema with custom objects and a governed property hierarchy built
-    for reporting, not just data entry.</p>
+  <p class="lead">A banking-native data model built on a deliberate rule: <b>bend native objects first, add
+    custom objects only where the cardinality demands it.</b> Companies, Deals and Tickets carry most of the
+    model — two custom objects earn their place — under a governed property hierarchy built for reporting,
+    not just data entry.</p>
 
   <h3>Object model</h3>
   <div class="card" style="padding:16px 20px">
     <table>
       <tr><th>Object</th><th>Type</th><th>Role in the model</th><th>Key associations</th></tr>
-      <tr><td><b>Relationship</b></td><td><span class="pill teal">Custom</span></td><td>The hub. One per commercial entity/household — the "whole relationship" view.</td><td>↔ Contacts, Facilities, Treasury Products, Deals</td></tr>
-      <tr><td><b>Loan Opportunity</b></td><td><span class="pill grey">Deal</span></td><td>An in-flight financing request moving through the lending pipeline.</td><td>↔ Relationship, Facility (on funding)</td></tr>
-      <tr><td><b>Facility</b></td><td><span class="pill teal">Custom</span></td><td>A funded/booked loan, synced read-only from nCino/core. Powers renewals &amp; exposure.</td><td>↔ Relationship</td></tr>
-      <tr><td><b>Treasury Product</b></td><td><span class="pill teal">Custom</span></td><td>Deposit/TM product holdings — the cross-sell surface.</td><td>↔ Relationship</td></tr>
-      <tr><td><b>Referral</b></td><td><span class="pill teal">Custom</span></td><td>Cross-division hand-off with a full source/owner trail.</td><td>↔ Relationship, RM (owner)</td></tr>
+      <tr><td><b>Relationship</b></td><td><span class="pill grey">Company (native)</span></td><td>The hub. One per commercial entity, with <b>parent/child associations</b> for householding — native, so it keeps standard reporting and record views.</td><td>↔ Contacts, Facilities, Treasury Products, Deals</td></tr>
+      <tr><td><b>Loan Opportunity</b></td><td><span class="pill grey">Deal (native)</span></td><td>An in-flight financing request moving through a custom lending pipeline.</td><td>↔ Company, Facility (on funding)</td></tr>
+      <tr><td><b>Facility</b></td><td><span class="pill teal">Custom</span></td><td>A funded/booked loan, synced read-only from nCino/core. <b>Earns its custom object</b> — a relationship holds many facilities, each with its own maturity and exposure.</td><td>↔ Company</td></tr>
+      <tr><td><b>Treasury Product</b></td><td><span class="pill teal">Custom</span></td><td>Deposit/TM product holdings — the cross-sell surface. <b>Earns its custom object</b> for the same 1:N reason.</td><td>↔ Company</td></tr>
+      <tr><td><b>Referral</b></td><td><span class="pill grey">Ticket (native)</span></td><td>Cross-division hand-off with a full source/owner trail — a ticket pipeline gives SLAs and routing for free.</td><td>↔ Company, RM (owner)</td></tr>
     </table>
   </div>
 
-  <h3>Custom property schema — <span class="muted" style="font-weight:600">Relationship object (excerpt)</span></h3>
+  <h3>Custom property schema — <span class="muted" style="font-weight:600">Relationship (Company object, excerpt)</span></h3>
   <div class="card" style="padding:16px 20px">
     <table>
       <tr><th>Property</th><th>Type</th><th>Group</th><th>Why it exists</th></tr>
@@ -547,8 +548,8 @@
       <div class="body"><b>Data foundation</b> — audit &amp; cleanse legacy data, householding, naming
       conventions, permissions model, hygiene workflows. <span class="pill teal" style="margin-left:6px">Stage 2</span></div></div>
     <div class="sprint"><div class="w">Sprint 2<br><span class="muted" style="font-weight:500">Weeks 4–5</span></div>
-      <div class="body"><b>Core build</b> — custom objects, property schema, Commercial Lending pipeline,
-      first 3 workflows. Demo: a relationship record + a deal moving through the funnel. <span class="pill sky" style="margin-left:6px">Stage 3</span></div></div>
+      <div class="body"><b>Core build</b> — native Company/Deal model, property schema, Commercial Lending
+      pipeline, first 3 workflows. Demo: a relationship record + a deal moving through the funnel. <span class="pill sky" style="margin-left:6px">Stage 3</span></div></div>
     <div class="sprint"><div class="w">Sprint 3<br><span class="muted" style="font-weight:500">Weeks 6–7</span></div>
       <div class="body"><b>Integrations &amp; migration</b> — core/nCino/Aircall/Snowflake syncs, staged
       migration + validation, controlled cutover. <span class="pill sky" style="margin-left:6px">Stage 3</span></div></div>
@@ -563,6 +564,41 @@
     <div class="stat"><div class="n">~10 wk</div><div class="l">MVP to production</div></div>
     <div class="stat"><div class="n">Every sprint</div><div class="l">Demoable output</div></div>
     <div class="stat"><div class="n">Build log</div><div class="l">On every automation</div></div>
+  </div>
+
+  <h3>Phasing — crawl, walk, run</h3>
+  <div class="card" style="padding:18px 20px">
+    <p class="muted" style="font-size:13.8px;margin:0 0 14px">No bank executive signs off on a six-month
+      big-bang CRM program without seeing value first — and they shouldn't. Each phase stands on its own and
+      returns something usable before the next one starts, so the program can be paused after any phase and
+      still be worth what was spent.</p>
+    <div class="loop" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stage" style="border-left:3px solid var(--teal)">
+        <div class="num" style="color:var(--teal)">PHASE 1 · CRAWL — weeks 1–5</div>
+        <h4>One team, one pipeline, clean data</h4>
+        <p><b>Scope:</b> native Company/Deal model, the Commercial Lending pipeline, hygiene workflows,
+        Aircall logging, a leadership dashboard. No custom objects, no core integration.<br>
+        <b>Value delivered:</b> a forecast leadership can trust, on real data, inside six weeks.</p>
+      </div>
+      <div class="stage" style="border-left:3px solid var(--sky)">
+        <div class="num" style="color:var(--sky)">PHASE 2 · WALK — weeks 6–12</div>
+        <h4>The banking data model</h4>
+        <p><b>Scope:</b> Facility &amp; Treasury Product custom objects, nCino sync, migration of historical
+        facilities, cross-sell and renewal automation, referral pipeline.<br>
+        <b>Value delivered:</b> whole-relationship view and the treasury cross-sell engine — the revenue case.</p>
+      </div>
+      <div class="stage" style="border-left:3px solid var(--gold)">
+        <div class="num" style="color:var(--gold)">PHASE 3 · RUN — month 4+</div>
+        <h4>Core sync &amp; the intelligence layer</h4>
+        <p><b>Scope:</b> Fiserv/FIS read-only sync via middleware, Snowflake warehouse, the RevOps
+        Intelligence Agent and next-best-action, full governance hardening.<br>
+        <b>Value delivered:</b> the self-learning loop — and it runs on data already proven clean.</p>
+      </div>
+    </div>
+    <div class="note" style="margin-top:16px"><b>Why this order.</b> The riskiest, most expensive work
+      (core-banking integration) is deliberately <em>last</em>, not first — so the client banks a trustworthy
+      forecast in week 5 and funds Phase 3 on the strength of a working system rather than a promise. It also
+      means a stalled core-IT dependency delays the AI layer, never the whole program.</div>
   </div>
 
   <h3>Scope, sizing &amp; effort — the agency lens</h3>
@@ -605,20 +641,23 @@
   <div class="grid g2">
     <div class="card">
       <h3 style="margin-top:2px">Platform prerequisites</h3>
-      <p class="muted" style="font-size:13.8px;margin:0">The custom-object model assumes a <b>HubSpot
-      Enterprise</b> tier (Sales/Service Enterprise or Ops Hub) — custom objects, calculated properties,
-      and field-level permissions aren't available below it. Right-sizing the license is part of scoping,
-      not an afterthought.</p>
+      <p class="muted" style="font-size:13.8px;margin:0">The two custom objects (Facility, Treasury Product)
+      assume a <b>HubSpot Enterprise</b> tier (Sales/Service Enterprise or Ops Hub) — custom objects,
+      calculated properties, and field-level permissions aren't available below it. Keeping Relationship on
+      native Company is partly a licensing decision too. Right-sizing the license is part of scoping, not an
+      afterthought.</p>
     </div>
     <div class="card">
       <h3 style="margin-top:2px">Custom objects vs. native — the trade-off I'd defend</h3>
-      <p class="muted" style="font-size:13.8px;margin:0">Four custom objects is deliberately aggressive and it
-      has a real cost: they sit outside default report builders, complicate line-of-sight attribution, and
-      consume API. So the honest call is <em>bend native first</em> — model <code>Relationship</code> as a
-      <b>Company</b> with parent/child householding and <code>Loan Opportunity</code> as a <b>Deal</b> with a
-      custom pipeline. Reserve true custom objects for <code>Facility</code> and <code>Treasury Product</code>,
-      where the 1:N banking cardinality genuinely breaks the native model. Accepting Custom-Report-Builder
-      complexity to model real banking relationships is a choice to make <em>with</em> the client, not a default.</p>
+      <p class="muted" style="font-size:13.8px;margin:0">Modelling everything as custom objects is the classic
+      over-engineering trap: they sit outside default report builders, complicate line-of-sight attribution,
+      and consume API. So the rule I applied to the architecture is <em>bend native first</em> —
+      <code>Relationship</code> is a <b>Company</b> with parent/child householding, <code>Loan Opportunity</code>
+      is a <b>Deal</b> on a custom pipeline, <code>Referral</code> is a <b>Ticket</b>. Only
+      <code>Facility</code> and <code>Treasury Product</code> earn custom objects, because a single relationship
+      holds many of each with their own lifecycles — a 1:N shape that genuinely breaks the native model. That's
+      two custom objects instead of five, and the Custom-Report-Builder complexity we <em>do</em> accept buys
+      something specific.</p>
     </div>
   </div>
 
